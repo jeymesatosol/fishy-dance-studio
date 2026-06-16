@@ -87,20 +87,15 @@ function draw(
 ) {
   ctx.clearRect(0, 0, w, h)
 
-  // sombras suaves no fundo
+  // sombras suaves no fundo (elipses escuras)
   ctx.save()
-  ctx.globalAlpha = 0.18
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.18)'
   for (const f of fishes) {
-    const img = getFishImage(f.sprite)
-    if (!img.complete || img.naturalWidth === 0) continue
     const aspect = aspectFor(f.sprite)
-    const hImg = f.size * 1.3
-    const wImg = hImg * aspect
-    ctx.save()
-    ctx.translate(f.x + 4, f.y + 10)
-    drawSprite(ctx, img, f, wImg, hImg)
-    ctx.filter = 'brightness(0)'
-    ctx.restore()
+    const wImg = f.size * 1.3 * aspect
+    ctx.beginPath()
+    ctx.ellipse(f.x + 4, f.y + f.size * 0.55, wImg * 0.35, f.size * 0.12, 0, 0, Math.PI * 2)
+    ctx.fill()
   }
   ctx.restore()
 
@@ -131,15 +126,10 @@ function drawSprite(
   // Rotação base: aponta o sprite na direção do movimento.
   // Se a imagem original aponta para a esquerda, somamos PI para alinhar com +x.
   const baseRot = f.facing === 'left' ? Math.PI : 0
-  let rot = f.direction + baseRot
-  // Normaliza para evitar peixe de cabeça pra baixo quando vai para a esquerda
-  // -> reflete verticalmente quando cos(direction) < 0
-  ctx.rotate(rot)
+  ctx.rotate(f.direction + baseRot)
+  // Evita peixe de cabeça pra baixo quando o movimento vai para a esquerda
   const flipY = Math.cos(f.direction) < 0 ? -1 : 1
-  // Se flipou Y, precisa "desfazer" o efeito de espelhamento do sprite
-  // (sprite continua olhando para frente do movimento)
-  if (flipY === -1) {
-    ctx.scale(1, -1)
+  if (flipY === -1) ctx.scale(1, -1)
   }
   // leve oscilação de inclinação (cauda balançando)
   const wag = Math.sin(f.phase * 1.6) * 0.06
