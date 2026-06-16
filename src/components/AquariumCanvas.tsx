@@ -130,7 +130,6 @@ function drawSprite(
   // Evita peixe de cabeça pra baixo quando o movimento vai para a esquerda
   const flipY = Math.cos(f.direction) < 0 ? -1 : 1
   if (flipY === -1) ctx.scale(1, -1)
-  }
   // leve oscilação de inclinação (cauda balançando)
   const wag = Math.sin(f.phase * 1.6) * 0.06
   ctx.rotate(wag)
