@@ -31,6 +31,8 @@ export interface FishConfig {
   vy: number
   size: number
   color: string
+  sprite: string         // URL da imagem do peixe
+  facing: 'left' | 'right' // direção em que o sprite original aponta
   speed: number          // velocidade de cruzeiro alvo (px/frame)
   cruisingSpeed: number
   direction: number      // ângulo atual (rad)
@@ -39,7 +41,7 @@ export interface FishConfig {
   targetY: number
   nextTargetChange: number
   wanderAngle: number    // ruído de wander acumulado
-  phase: number          // para oscilação da cauda
+  phase: number          // para oscilação suave
 }
 
 export interface BoidsConfig {

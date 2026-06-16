@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Asset, FishConfig } from '@/lib/aquarium/types'
 import { assetsToFishes } from '@/lib/aquarium/fish-mapping'
 import { defaultBoidsConfig, updateBoids } from '@/lib/aquarium/boids'
+import { fishSprites, getFishImage, preloadFishImages } from '@/lib/aquarium/fish-sprites'
 
 interface AquariumCanvasProps {
   assets: Asset[]
@@ -13,7 +14,8 @@ export function AquariumCanvas({ assets }: AquariumCanvasProps) {
   const rafRef = useRef<number | null>(null)
   const [size, setSize] = useState({ w: 0, h: 0 })
 
-  // resize observer
+  useEffect(() => { preloadFishImages() }, [])
+
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -27,13 +29,11 @@ export function AquariumCanvas({ assets }: AquariumCanvasProps) {
     return () => ro.disconnect()
   }, [])
 
-  // (re)cria peixes quando assets ou tamanho mudam
   useEffect(() => {
     if (size.w === 0 || size.h === 0) return
     fishesRef.current = assetsToFishes(assets, size.w, size.h)
   }, [assets, size.w, size.h])
 
-  // loop de animação
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas || size.w === 0 || size.h === 0) return
@@ -65,11 +65,18 @@ export function AquariumCanvas({ assets }: AquariumCanvasProps) {
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-2xl bg-gradient-to-b from-[#0b3a5b] via-[#0d4f73] to-[#0a2a44]">
-      {/* raios de luz */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.18),transparent_60%)]" />
       <canvas ref={canvasRef} className="absolute inset-0" />
     </div>
   )
+}
+
+/** Encontra o aspect ratio cadastrado para uma URL de sprite (fallback 1.5). */
+function aspectFor(url: string): number {
+  for (const def of Object.values(fishSprites)) {
+    if (def.url === url) return def.aspect
+  }
+  return 1.5
 }
 
 function draw(
@@ -80,92 +87,51 @@ function draw(
 ) {
   ctx.clearRect(0, 0, w, h)
 
-  // sombra ao fundo
+  // sombras suaves no fundo (elipses escuras)
+  ctx.save()
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.18)'
   for (const f of fishes) {
-    ctx.save()
-    ctx.translate(f.x + 3, f.y + 6)
-    ctx.rotate(f.direction)
-    ctx.fillStyle = 'rgba(0,0,0,0.18)'
-    drawFishShape(ctx, f.size, f.phase)
-    ctx.restore()
+    const aspect = aspectFor(f.sprite)
+    const wImg = f.size * 1.3 * aspect
+    ctx.beginPath()
+    ctx.ellipse(f.x + 4, f.y + f.size * 0.55, wImg * 0.35, f.size * 0.12, 0, 0, Math.PI * 2)
+    ctx.fill()
   }
+  ctx.restore()
 
   // peixes
   for (const f of fishes) {
+    const img = getFishImage(f.sprite)
+    if (!img.complete || img.naturalWidth === 0) continue
+    const aspect = aspectFor(f.sprite)
+    const hImg = f.size * 1.3
+    const wImg = hImg * aspect
     ctx.save()
     ctx.translate(f.x, f.y)
-    ctx.rotate(f.direction)
-
-    // corpo com gradiente
-    const grad = ctx.createLinearGradient(0, -f.size / 2, 0, f.size / 2)
-    grad.addColorStop(0, lighten(f.color, 0.25))
-    grad.addColorStop(1, darken(f.color, 0.2))
-    ctx.fillStyle = grad
-    ctx.strokeStyle = darken(f.color, 0.35)
-    ctx.lineWidth = 1
-
-    drawFishShape(ctx, f.size, f.phase)
-    ctx.fill()
-    ctx.stroke()
-
-    // olho
-    const eyeX = f.size * 0.28
-    const eyeY = -f.size * 0.08
-    ctx.fillStyle = '#fff'
-    ctx.beginPath()
-    ctx.arc(eyeX, eyeY, f.size * 0.07, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.fillStyle = '#111'
-    ctx.beginPath()
-    ctx.arc(eyeX + f.size * 0.02, eyeY, f.size * 0.035, 0, Math.PI * 2)
-    ctx.fill()
-
+    // leve bobbing vertical com phase
+    const bob = Math.sin(f.phase) * 1.2
+    ctx.translate(0, bob)
+    drawSprite(ctx, img, f, wImg, hImg)
     ctx.restore()
   }
 }
 
-/** Corpo do peixe centrado em (0,0), apontando para +x. Cauda oscila com phase. */
-function drawFishShape(ctx: CanvasRenderingContext2D, size: number, phase: number) {
-  const len = size
-  const hh = size * 0.35 // half-height
-  const tailWag = Math.sin(phase) * size * 0.18
-
-  ctx.beginPath()
-  // corpo (elipse alongada via curvas)
-  ctx.moveTo(len * 0.5, 0) // ponta da cabeça
-  ctx.bezierCurveTo(
-    len * 0.45, -hh,
-    -len * 0.25, -hh,
-    -len * 0.4, tailWag * 0.4
-  )
-  // cauda
-  ctx.lineTo(-len * 0.55, tailWag - hh * 0.6)
-  ctx.lineTo(-len * 0.45, tailWag * 0.4)
-  ctx.lineTo(-len * 0.55, tailWag + hh * 0.6)
-  ctx.lineTo(-len * 0.4, tailWag * 0.4)
-  ctx.bezierCurveTo(
-    -len * 0.25, hh,
-    len * 0.45, hh,
-    len * 0.5, 0
-  )
-  ctx.closePath()
-}
-
-function hexToRgb(hex: string) {
-  return {
-    r: parseInt(hex.slice(1, 3), 16),
-    g: parseInt(hex.slice(3, 5), 16),
-    b: parseInt(hex.slice(5, 7), 16),
-  }
-}
-function toHex(n: number) {
-  return Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0')
-}
-function lighten(hex: string, amt: number) {
-  const { r, g, b } = hexToRgb(hex)
-  return `#${toHex(r + (255 - r) * amt)}${toHex(g + (255 - g) * amt)}${toHex(b + (255 - b) * amt)}`
-}
-function darken(hex: string, amt: number) {
-  const { r, g, b } = hexToRgb(hex)
-  return `#${toHex(r * (1 - amt))}${toHex(g * (1 - amt))}${toHex(b * (1 - amt))}`
+function drawSprite(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  f: FishConfig,
+  wImg: number,
+  hImg: number,
+) {
+  // Rotação base: aponta o sprite na direção do movimento.
+  // Se a imagem original aponta para a esquerda, somamos PI para alinhar com +x.
+  const baseRot = f.facing === 'left' ? Math.PI : 0
+  ctx.rotate(f.direction + baseRot)
+  // Evita peixe de cabeça pra baixo quando o movimento vai para a esquerda
+  const flipY = Math.cos(f.direction) < 0 ? -1 : 1
+  if (flipY === -1) ctx.scale(1, -1)
+  // leve oscilação de inclinação (cauda balançando)
+  const wag = Math.sin(f.phase * 1.6) * 0.06
+  ctx.rotate(wag)
+  ctx.drawImage(img, -wImg / 2, -hImg / 2, wImg, hImg)
 }

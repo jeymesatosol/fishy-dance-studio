@@ -1,5 +1,6 @@
 import type { Asset, AssetType, FishConfig } from './types'
 import { assetTypeColors } from './types'
+import { fishSprites } from './fish-sprites'
 
 const MIN_FISH_SIZE = 22
 const MAX_FISH_SIZE = 58
@@ -122,15 +123,18 @@ export function assetsToFishes(
     const horizontalBias = Math.random() < 0.5 ? 0 : Math.PI
     const dir = horizontalBias + (Math.random() - 0.5) * (Math.PI * 0.6)
 
+    const sprite = fishSprites[asset.type]
     return {
       id: `fish-${asset.id}`,
       assetId: asset.id,
       x,
       y,
       vx: Math.cos(dir) * cruising,
-      vy: Math.sin(dir) * cruising * 0.4, // componente vertical menor
+      vy: Math.sin(dir) * cruising * 0.4,
       size,
       color,
+      sprite: sprite.url,
+      facing: sprite.facing,
       speed: cruising,
       cruisingSpeed: cruising,
       direction: dir,
