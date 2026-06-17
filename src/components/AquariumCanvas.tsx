@@ -137,24 +137,32 @@ function drawSprite(
   const flipX = goingLeft !== spriteFacesLeft ? -1 : 1
   if (flipX === -1) ctx.scale(-1, 1)
 
-  // Após o flip, a cabeça fica em -x quando goingLeft, e em +x quando goingRight.
+  // Importante: após o eventual scale(-1,1), o desenho do sprite continua
+  // ocorrendo em coordenadas LOCAIS do código. Nessas coordenadas locais,
+  // o pixel original da cabeça está sempre do lado para onde o sprite
+  // aponta nativamente (spriteFacesLeft). O flip apenas reflete o
+  // resultado visual. Portanto o lado da cabeça (em coords de código)
+  // depende de spriteFacesLeft, e NÃO da direção de movimento.
+  const headLeftInCode = spriteFacesLeft
   const tailFrac = 0.36
   const tailW = wImg * tailFrac
   const bodyW = wImg - tailW
-  const headLeft = goingLeft
-  // Faixa do corpo (lado da cabeça) e da cauda (lado oposto).
-  const bodyX = headLeft ? -wImg / 2 : -wImg / 2 + tailW
-  const tailX = headLeft ? wImg / 2 - tailW : -wImg / 2
+  // Faixa do corpo (lado da cabeça) e da cauda (lado oposto), em coords locais.
+  const bodyX = headLeftInCode ? -wImg / 2 : -wImg / 2 + tailW
+  const tailX = headLeftInCode ? wImg / 2 - tailW : -wImg / 2
   // Pivô da articulação fica na junção corpo-cauda.
-  const pivotX = headLeft ? wImg / 2 - tailW : -wImg / 2 + tailW
+  const pivotX = headLeftInCode ? wImg / 2 - tailW : -wImg / 2 + tailW
 
   // Velocidade de batida proporcional à velocidade real do peixe (mais lenta).
   const speed = Math.hypot(f.vx ?? 0, f.vy ?? 0)
   const beat = 1.4 + Math.min(speed * 0.4, 1.6)
   // Ângulo da cauda (articulação) — amplitude moderada.
   const tailSwing = Math.sin(f.phase * beat) * 0.38
-  // Direção do giro depende de qual lado a cauda está, para o "empurrão" parecer natural.
-  const tailAngle = headLeft ? tailSwing : -tailSwing
+  // Direção do giro consistente em relação ao lado da cauda em coords locais.
+  const tailAngle = headLeftInCode ? tailSwing : -tailSwing
+  // bodyW é usado no clip do corpo (apenas para clareza/lint).
+  void bodyW
+
 
   // --- Corpo ---
   ctx.save()
