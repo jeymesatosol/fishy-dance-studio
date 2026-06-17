@@ -209,7 +209,7 @@ export function updateBoids(
       targetY,
       nextTargetChange,
       wanderAngle: newWanderAngle,
-      phase: fish.phase + 0.18, // oscilação da cauda
+      phase: fish.phase + 0.08, // oscilação da cauda (mais lenta)
     }
   })
 
