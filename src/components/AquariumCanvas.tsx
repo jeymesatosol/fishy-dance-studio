@@ -126,10 +126,11 @@ function drawSprite(
   // Nariz do peixe aponta para a direção de movimento, sempre com a barriga para baixo.
   const dir = Math.atan2(Math.sin(f.direction), Math.cos(f.direction))
   const goingLeft = Math.cos(dir) < 0
-  // Inclinação vertical leve (sobe/desce) sem virar de cabeça para baixo.
-  const tilt = goingLeft ? -Math.asin(Math.sin(dir)) * -1 : Math.asin(Math.sin(dir))
+  // Inclinação vertical: com o flip horizontal (quando goingLeft), o sinal precisa inverter
+  // para que a cabeça siga o eixo Y do movimento real.
+  const tilt = goingLeft ? -Math.asin(Math.sin(dir)) : Math.asin(Math.sin(dir))
   // Leve oscilação do corpo inteiro (yaw natural durante o nado).
-  const yaw = Math.sin(f.phase * 1.6) * 0.04
+  const yaw = Math.sin(f.phase * 1.2) * 0.025
   ctx.rotate(tilt + yaw)
 
   const spriteFacesLeft = f.facing === 'left'
@@ -147,11 +148,11 @@ function drawSprite(
   // Pivô da articulação fica na junção corpo-cauda.
   const pivotX = headLeft ? wImg / 2 - tailW : -wImg / 2 + tailW
 
-  // Velocidade de batida proporcional à velocidade real do peixe.
+  // Velocidade de batida proporcional à velocidade real do peixe (mais lenta).
   const speed = Math.hypot(f.vx ?? 0, f.vy ?? 0)
-  const beat = 3.2 + Math.min(speed * 0.8, 4)
-  // Ângulo da cauda (articulação) — amplitude maior, simulando propulsão.
-  const tailSwing = Math.sin(f.phase * beat) * 0.55
+  const beat = 1.4 + Math.min(speed * 0.4, 1.6)
+  // Ângulo da cauda (articulação) — amplitude moderada.
+  const tailSwing = Math.sin(f.phase * beat) * 0.38
   // Direção do giro depende de qual lado a cauda está, para o "empurrão" parecer natural.
   const tailAngle = headLeft ? tailSwing : -tailSwing
 
