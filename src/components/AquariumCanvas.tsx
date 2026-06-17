@@ -124,20 +124,53 @@ function drawSprite(
   hImg: number,
 ) {
   // Nariz do peixe aponta para a direção de movimento, sempre com a barriga para baixo.
-  // Normaliza a direção para [-PI, PI].
-  let dir = Math.atan2(Math.sin(f.direction), Math.cos(f.direction))
-  // Se está se movendo para a esquerda (cos<0), espelhamos horizontalmente
-  // em vez de girar 180°, evitando "cabeça pra baixo".
+  const dir = Math.atan2(Math.sin(f.direction), Math.cos(f.direction))
   const goingLeft = Math.cos(dir) < 0
-  // Ângulo de inclinação (apenas componente vertical do movimento).
-  // Quando vai para a esquerda, invertemos para manter a barriga embaixo após o flip.
+  // Inclinação vertical leve (sobe/desce) sem virar de cabeça para baixo.
   const tilt = goingLeft ? -Math.asin(Math.sin(dir)) * -1 : Math.asin(Math.sin(dir))
-  // Pequeno wag de cauda
-  const wag = Math.sin(f.phase * 1.6) * 0.06
-  ctx.rotate(tilt + wag)
-  // Se sprite original aponta para esquerda, o "default" é left; ajusta sinal.
+  // Leve oscilação do corpo inteiro (yaw natural durante o nado).
+  const yaw = Math.sin(f.phase * 1.6) * 0.04
+  ctx.rotate(tilt + yaw)
+
   const spriteFacesLeft = f.facing === 'left'
   const flipX = goingLeft !== spriteFacesLeft ? -1 : 1
   if (flipX === -1) ctx.scale(-1, 1)
+
+  // Após o flip, a cabeça fica em -x quando goingLeft, e em +x quando goingRight.
+  const tailFrac = 0.36
+  const tailW = wImg * tailFrac
+  const bodyW = wImg - tailW
+  const headLeft = goingLeft
+  // Faixa do corpo (lado da cabeça) e da cauda (lado oposto).
+  const bodyX = headLeft ? -wImg / 2 : -wImg / 2 + tailW
+  const tailX = headLeft ? wImg / 2 - tailW : -wImg / 2
+  // Pivô da articulação fica na junção corpo-cauda.
+  const pivotX = headLeft ? wImg / 2 - tailW : -wImg / 2 + tailW
+
+  // Velocidade de batida proporcional à velocidade real do peixe.
+  const speed = Math.hypot(f.vx ?? 0, f.vy ?? 0)
+  const beat = 3.2 + Math.min(speed * 0.8, 4)
+  // Ângulo da cauda (articulação) — amplitude maior, simulando propulsão.
+  const tailSwing = Math.sin(f.phase * beat) * 0.55
+  // Direção do giro depende de qual lado a cauda está, para o "empurrão" parecer natural.
+  const tailAngle = headLeft ? tailSwing : -tailSwing
+
+  // --- Corpo ---
+  ctx.save()
+  ctx.beginPath()
+  ctx.rect(bodyX, -hImg / 2, bodyW, hImg)
+  ctx.clip()
   ctx.drawImage(img, -wImg / 2, -hImg / 2, wImg, hImg)
+  ctx.restore()
+
+  // --- Cauda articulada ---
+  ctx.save()
+  ctx.translate(pivotX, 0)
+  ctx.rotate(tailAngle)
+  ctx.translate(-pivotX, 0)
+  ctx.beginPath()
+  ctx.rect(tailX, -hImg / 2, tailW, hImg)
+  ctx.clip()
+  ctx.drawImage(img, -wImg / 2, -hImg / 2, wImg, hImg)
+  ctx.restore()
 }
