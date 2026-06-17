@@ -11,10 +11,10 @@ export const defaultBoidsConfig: BoidsConfig = {
   separationWeight: 4.0,
   alignmentWeight: 0,
   cohesionWeight: 0,
-  maxSpeed: 1.4,
-  minSpeed: 0.35,
-  maxForce: 0.06,
-  maxTurnRate: 0.07, // ~4°/frame
+  maxSpeed: 0.7,
+  minSpeed: 0.15,
+  maxForce: 0.03,
+  maxTurnRate: 0.04, // ~2.3°/frame
   perceptionRadius: 90,
   separationRadius: 0, // calculado dinamicamente a partir do tamanho
 }
