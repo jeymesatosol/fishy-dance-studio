@@ -123,15 +123,21 @@ function drawSprite(
   wImg: number,
   hImg: number,
 ) {
-  // Rotação base: aponta o sprite na direção do movimento.
-  // Se a imagem original aponta para a esquerda, somamos PI para alinhar com +x.
-  const baseRot = f.facing === 'left' ? Math.PI : 0
-  ctx.rotate(f.direction + baseRot)
-  // Evita peixe de cabeça pra baixo quando o movimento vai para a esquerda
-  const flipY = Math.cos(f.direction) < 0 ? -1 : 1
-  if (flipY === -1) ctx.scale(1, -1)
-  // leve oscilação de inclinação (cauda balançando)
+  // Nariz do peixe aponta para a direção de movimento, sempre com a barriga para baixo.
+  // Normaliza a direção para [-PI, PI].
+  let dir = Math.atan2(Math.sin(f.direction), Math.cos(f.direction))
+  // Se está se movendo para a esquerda (cos<0), espelhamos horizontalmente
+  // em vez de girar 180°, evitando "cabeça pra baixo".
+  const goingLeft = Math.cos(dir) < 0
+  // Ângulo de inclinação (apenas componente vertical do movimento).
+  // Quando vai para a esquerda, invertemos para manter a barriga embaixo após o flip.
+  const tilt = goingLeft ? -Math.asin(Math.sin(dir)) * -1 : Math.asin(Math.sin(dir))
+  // Pequeno wag de cauda
   const wag = Math.sin(f.phase * 1.6) * 0.06
-  ctx.rotate(wag)
+  ctx.rotate(tilt + wag)
+  // Se sprite original aponta para esquerda, o "default" é left; ajusta sinal.
+  const spriteFacesLeft = f.facing === 'left'
+  const flipX = goingLeft !== spriteFacesLeft ? -1 : 1
+  if (flipX === -1) ctx.scale(-1, 1)
   ctx.drawImage(img, -wImg / 2, -hImg / 2, wImg, hImg)
 }
