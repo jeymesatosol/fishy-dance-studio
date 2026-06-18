@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Asset, FishConfig } from '@/lib/aquarium/types'
 import { assetsToFishes } from '@/lib/aquarium/fish-mapping'
 import { defaultBoidsConfig, updateBoids } from '@/lib/aquarium/boids'
-import { fishSprites, getFishImage, preloadFishImages } from '@/lib/aquarium/fish-sprites'
+import { getFishImage, preloadFishImages, spriteDefForBody, type SpriteDef } from '@/lib/aquarium/fish-sprites'
 
 interface AquariumCanvasProps {
   assets: Asset[]
@@ -71,14 +71,6 @@ export function AquariumCanvas({ assets }: AquariumCanvasProps) {
   )
 }
 
-/** Encontra o aspect ratio cadastrado para uma URL de sprite (fallback 1.5). */
-function aspectFor(url: string): number {
-  for (const def of Object.values(fishSprites)) {
-    if (def.url === url) return def.aspect
-  }
-  return 1.5
-}
-
 function draw(
   ctx: CanvasRenderingContext2D,
   fishes: FishConfig[],
@@ -87,99 +79,93 @@ function draw(
 ) {
   ctx.clearRect(0, 0, w, h)
 
-  // sombras suaves no fundo (elipses escuras)
+  // sombras
   ctx.save()
   ctx.fillStyle = 'rgba(0, 0, 0, 0.18)'
   for (const f of fishes) {
-    const aspect = aspectFor(f.sprite)
-    const wImg = f.size * 1.3 * aspect
     ctx.beginPath()
-    ctx.ellipse(f.x + 4, f.y + f.size * 0.55, wImg * 0.35, f.size * 0.12, 0, 0, Math.PI * 2)
+    ctx.ellipse(f.x + 4, f.y + f.size * 0.55, f.size * 0.6, f.size * 0.12, 0, 0, Math.PI * 2)
     ctx.fill()
   }
   ctx.restore()
 
-  // peixes
   for (const f of fishes) {
-    const img = getFishImage(f.sprite)
-    if (!img.complete || img.naturalWidth === 0) continue
-    const aspect = aspectFor(f.sprite)
-    const hImg = f.size * 1.3
-    const wImg = hImg * aspect
+    const def = spriteDefForBody(f.sprite)
+    if (!def) continue
+    const body = getFishImage(def.bodyUrl)
+    const tail = getFishImage(def.tailUrl)
+    if (!body.complete || body.naturalWidth === 0) continue
+    if (!tail.complete || tail.naturalWidth === 0) continue
+
+    const bodyH = f.size * 1.3
+    const bodyAspect = body.naturalWidth / body.naturalHeight
+    const bodyW = bodyH * bodyAspect
+
+    const tailH = bodyH * def.tailScale
+    const tailAspect = tail.naturalWidth / tail.naturalHeight
+    const tailW = tailH * tailAspect
+
     ctx.save()
     ctx.translate(f.x, f.y)
-    // leve bobbing vertical com phase
     const bob = Math.sin(f.phase) * 1.2
     ctx.translate(0, bob)
-    drawSprite(ctx, img, f, wImg, hImg)
+    drawFish(ctx, body, tail, f, def, bodyW, bodyH, tailW, tailH)
     ctx.restore()
   }
 }
 
-function drawSprite(
+function drawFish(
   ctx: CanvasRenderingContext2D,
-  img: HTMLImageElement,
+  bodyImg: HTMLImageElement,
+  tailImg: HTMLImageElement,
   f: FishConfig,
-  wImg: number,
-  hImg: number,
+  def: SpriteDef,
+  bodyW: number,
+  bodyH: number,
+  tailW: number,
+  tailH: number,
 ) {
-  // Nariz do peixe aponta para a direção de movimento, sempre com a barriga para baixo.
   const dir = Math.atan2(Math.sin(f.direction), Math.cos(f.direction))
   const goingLeft = Math.cos(dir) < 0
-  // Inclinação vertical: com o flip horizontal (quando goingLeft), o sinal precisa inverter
-  // para que a cabeça siga o eixo Y do movimento real.
   const tilt = goingLeft ? -Math.asin(Math.sin(dir)) : Math.asin(Math.sin(dir))
-  // Leve oscilação do corpo inteiro (yaw natural durante o nado).
   const yaw = Math.sin(f.phase * 1.2) * 0.025
   ctx.rotate(tilt + yaw)
 
-  const spriteFacesLeft = f.facing === 'left'
+  const spriteFacesLeft = def.facing === 'left'
   const flipX = goingLeft !== spriteFacesLeft ? -1 : 1
   if (flipX === -1) ctx.scale(-1, 1)
 
-  // Importante: após o eventual scale(-1,1), o desenho do sprite continua
-  // ocorrendo em coordenadas LOCAIS do código. Nessas coordenadas locais,
-  // o pixel original da cabeça está sempre do lado para onde o sprite
-  // aponta nativamente (spriteFacesLeft). O flip apenas reflete o
-  // resultado visual. Portanto o lado da cabeça (em coords de código)
-  // depende de spriteFacesLeft, e NÃO da direção de movimento.
-  const headLeftInCode = spriteFacesLeft
-  const tailFrac = 0.36
-  const tailW = wImg * tailFrac
-  const bodyW = wImg - tailW
-  // Faixa do corpo (lado da cabeça) e da cauda (lado oposto), em coords locais.
-  const bodyX = headLeftInCode ? -wImg / 2 : -wImg / 2 + tailW
-  const tailX = headLeftInCode ? wImg / 2 - tailW : -wImg / 2
-  // Pivô da articulação fica na junção corpo-cauda.
-  const pivotX = headLeftInCode ? wImg / 2 - tailW : -wImg / 2 + tailW
+  // Em coords de código, mantemos sempre a orientação NATIVA do sprite.
+  // Para spriteFacesLeft, cabeça na esquerda, cauda na direita.
+  // attachX é medido a partir do lado da cabeça → em coords locais:
+  //   - facing left:  attach = -bodyW/2 + attachX * bodyW
+  //   - facing right: attach =  bodyW/2 - attachX * bodyW
+  const attachLocalX = spriteFacesLeft
+    ? -bodyW / 2 + def.attachX * bodyW
+    : bodyW / 2 - def.attachX * bodyW
+  const attachLocalY = -bodyH / 2 + def.attachY * bodyH
 
-  // Velocidade de batida proporcional à velocidade real do peixe (mais lenta).
+  // pivotX na imagem da cauda, medido do lado do corpo
+  // - facing left: lado do corpo da cauda = esquerda da img da cauda
+  //   → pivô em coords da img: pivotX * tailW (a partir da esquerda)
+  // - facing right: lado do corpo = direita da img → pivô a partir da direita
+  const tailPivotInImgX = spriteFacesLeft ? def.pivotX * tailW : tailW - def.pivotX * tailW
+  const tailPivotInImgY = def.pivotY * tailH
+
+  // Batida da cauda
   const speed = Math.hypot(f.vx ?? 0, f.vy ?? 0)
   const beat = 1.4 + Math.min(speed * 0.4, 1.6)
-  // Ângulo da cauda (articulação) — amplitude moderada.
   const tailSwing = Math.sin(f.phase * beat) * 0.38
-  // Direção do giro consistente em relação ao lado da cauda em coords locais.
-  const tailAngle = headLeftInCode ? tailSwing : -tailSwing
-  // bodyW é usado no clip do corpo (apenas para clareza/lint).
-  void bodyW
-
+  // direção do giro: cauda à direita do corpo (facing left) → giro positivo gira sentido horário
+  const tailAngle = spriteFacesLeft ? tailSwing : -tailSwing
 
   // --- Corpo ---
-  ctx.save()
-  ctx.beginPath()
-  ctx.rect(bodyX, -hImg / 2, bodyW, hImg)
-  ctx.clip()
-  ctx.drawImage(img, -wImg / 2, -hImg / 2, wImg, hImg)
-  ctx.restore()
+  ctx.drawImage(bodyImg, -bodyW / 2, -bodyH / 2, bodyW, bodyH)
 
   // --- Cauda articulada ---
   ctx.save()
-  ctx.translate(pivotX, 0)
+  ctx.translate(attachLocalX, attachLocalY)
   ctx.rotate(tailAngle)
-  ctx.translate(-pivotX, 0)
-  ctx.beginPath()
-  ctx.rect(tailX, -hImg / 2, tailW, hImg)
-  ctx.clip()
-  ctx.drawImage(img, -wImg / 2, -hImg / 2, wImg, hImg)
+  ctx.drawImage(tailImg, -tailPivotInImgX, -tailPivotInImgY, tailW, tailH)
   ctx.restore()
 }

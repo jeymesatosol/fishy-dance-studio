@@ -133,7 +133,7 @@ export function assetsToFishes(
       vy: Math.sin(dir) * cruising * 0.4,
       size,
       color,
-      sprite: sprite.url,
+      sprite: sprite.bodyUrl,
       facing: sprite.facing,
       speed: cruising,
       cruisingSpeed: cruising,
