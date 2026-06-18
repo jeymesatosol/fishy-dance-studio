@@ -152,20 +152,24 @@ function drawFish(
   const tailPivotInImgX = spriteFacesLeft ? def.pivotX * tailW : tailW - def.pivotX * tailW
   const tailPivotInImgY = def.pivotY * tailH
 
-  // Batida da cauda
+  // Batida da cauda — movimento lateral discreto ao longo do eixo do corpo
+  // (em vez de rotação vertical, a cauda desliza/escala horizontalmente
+  // simulando uma vista superior do nado).
   const speed = Math.hypot(f.vx ?? 0, f.vy ?? 0)
   const beat = 1.4 + Math.min(speed * 0.4, 1.6)
-  const tailSwing = Math.sin(f.phase * beat) * 0.38
-  // direção do giro: cauda à direita do corpo (facing left) → giro positivo gira sentido horário
-  const tailAngle = spriteFacesLeft ? tailSwing : -tailSwing
+  const swing = Math.sin(f.phase * beat) // -1..1
+  // compressão horizontal sutil (lateral squash) — sempre <= 1
+  const tailSquash = 1 - Math.abs(swing) * 0.25
+  // deslocamento lateral discreto ao longo do eixo do corpo (coords locais do código)
+  const lateralShift = swing * tailW * 0.08 * (spriteFacesLeft ? 1 : -1)
 
-  // --- Corpo ---
-  ctx.drawImage(bodyImg, -bodyW / 2, -bodyH / 2, bodyW, bodyH)
-
-  // --- Cauda articulada ---
+  // --- Cauda articulada (desenhada ANTES do corpo p/ esconder a junção) ---
   ctx.save()
-  ctx.translate(attachLocalX, attachLocalY)
-  ctx.rotate(tailAngle)
+  ctx.translate(attachLocalX + lateralShift, attachLocalY)
+  ctx.scale(tailSquash, 1)
   ctx.drawImage(tailImg, -tailPivotInImgX, -tailPivotInImgY, tailW, tailH)
   ctx.restore()
+
+  // --- Corpo (por cima, ocultando a articulação) ---
+  ctx.drawImage(bodyImg, -bodyW / 2, -bodyH / 2, bodyW, bodyH)
 }
