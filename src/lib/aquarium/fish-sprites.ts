@@ -24,11 +24,11 @@ export interface SpriteDef {
 }
 
 export const fishSprites: Record<AssetType, SpriteDef> = {
-  crypto: { bodyUrl: clownfishBody.url, tailUrl: clownfishTail.url, facing: 'left', tailScale: 0.85, attachX: 0.95, attachY: 0.55, pivotX: 0.08, pivotY: 0.5 },
-  stock:  { bodyUrl: bluetangBody.url,  tailUrl: bluetangTail.url,  facing: 'left', tailScale: 0.75, attachX: 0.94, attachY: 0.5,  pivotX: 0.1,  pivotY: 0.5 },
-  etf:    { bodyUrl: angelfishBody.url, tailUrl: angelfishTail.url, facing: 'left', tailScale: 0.95, attachX: 0.88, attachY: 0.6,  pivotX: 0.1,  pivotY: 0.5 },
-  reit:   { bodyUrl: koiBody.url,       tailUrl: koiTail.url,       facing: 'left', tailScale: 0.75, attachX: 0.94, attachY: 0.5,  pivotX: 0.15, pivotY: 0.5 },
-  bond:   { bodyUrl: angelfishBody.url, tailUrl: angelfishTail.url, facing: 'left', tailScale: 0.95, attachX: 0.88, attachY: 0.6,  pivotX: 0.1,  pivotY: 0.5 },
+  crypto: { bodyUrl: clownfishBody.url, tailUrl: clownfishTail.url, facing: 'left', tailScale: 0.42, attachX: 0.95, attachY: 0.55, pivotX: 0.08, pivotY: 0.5 },
+  stock:  { bodyUrl: bluetangBody.url,  tailUrl: bluetangTail.url,  facing: 'left', tailScale: 0.38, attachX: 0.94, attachY: 0.5,  pivotX: 0.1,  pivotY: 0.5 },
+  etf:    { bodyUrl: angelfishBody.url, tailUrl: angelfishTail.url, facing: 'left', tailScale: 0.48, attachX: 0.88, attachY: 0.6,  pivotX: 0.1,  pivotY: 0.5 },
+  reit:   { bodyUrl: koiBody.url,       tailUrl: koiTail.url,       facing: 'left', tailScale: 0.38, attachX: 0.94, attachY: 0.5,  pivotX: 0.15, pivotY: 0.5 },
+  bond:   { bodyUrl: angelfishBody.url, tailUrl: angelfishTail.url, facing: 'left', tailScale: 0.48, attachX: 0.88, attachY: 0.6,  pivotX: 0.1,  pivotY: 0.5 },
 }
 
 const cache = new Map<string, HTMLImageElement>()
