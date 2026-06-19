@@ -73,8 +73,7 @@ export function AquariumCanvas({ assets }: AquariumCanvasProps) {
   }, [size.w, size.h])
 
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-2xl bg-gradient-to-b from-[#0b3a5b] via-[#0d4f73] to-[#0a2a44]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.18),transparent_60%)]" />
+    <div className="relative h-full w-full overflow-hidden rounded-2xl bg-black">
       <canvas ref={canvasRef} className="absolute inset-0" />
     </div>
   )
