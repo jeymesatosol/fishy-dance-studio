@@ -63,7 +63,7 @@ export function AquariumCanvas({ assets }: AquariumCanvasProps) {
         size.w,
         size.h
       )
-      draw(ctx, fishesRef.current, size.w, size.h)
+      draw(ctx, fishesRef.current, size.w, size.h, bgImgRef.current)
       rafRef.current = requestAnimationFrame(tick)
     }
     rafRef.current = requestAnimationFrame(tick)
