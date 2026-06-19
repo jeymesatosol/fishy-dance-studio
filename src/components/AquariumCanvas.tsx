@@ -80,7 +80,7 @@ export function AquariumCanvas({ assets }: AquariumCanvasProps) {
 }
 
 const BG_BRIGHTNESS = 0.85
-const FISH_BRIGHTNESS = 1.25
+const FISH_BRIGHTNESS = 1.05
 
 function draw(
   ctx: CanvasRenderingContext2D,
