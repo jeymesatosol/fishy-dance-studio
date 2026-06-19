@@ -13,9 +13,17 @@ export function AquariumCanvas({ assets }: AquariumCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fishesRef = useRef<FishConfig[]>([])
   const rafRef = useRef<number | null>(null)
+  const bgImgRef = useRef<HTMLImageElement | null>(null)
   const [size, setSize] = useState({ w: 0, h: 0 })
 
   useEffect(() => { preloadFishImages() }, [])
+
+  useEffect(() => {
+    const img = new Image()
+    img.src = bgAsset.url
+    img.onload = () => { bgImgRef.current = img }
+    return () => { img.onload = null }
+  }, [])
 
   useEffect(() => {
     const canvas = canvasRef.current
