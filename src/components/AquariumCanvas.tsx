@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import bgAsset from '@/assets/aquarium-bg.jpg.asset.json'
 import type { Asset, FishConfig } from '@/lib/aquarium/types'
 import { assetsToFishes } from '@/lib/aquarium/fish-mapping'
 import { defaultBoidsConfig, updateBoids } from '@/lib/aquarium/boids'
