@@ -79,13 +79,28 @@ export function AquariumCanvas({ assets }: AquariumCanvasProps) {
   )
 }
 
+const BG_BRIGHTNESS = 0.85
+const FISH_BRIGHTNESS = 1.25
+
 function draw(
   ctx: CanvasRenderingContext2D,
   fishes: FishConfig[],
   w: number,
-  h: number
+  h: number,
+  bgImg: HTMLImageElement | null,
 ) {
   ctx.clearRect(0, 0, w, h)
+
+  // fundo
+  if (bgImg && bgImg.complete && bgImg.naturalWidth > 0) {
+    ctx.save()
+    ctx.filter = `brightness(${BG_BRIGHTNESS})`
+    const scale = Math.max(w / bgImg.naturalWidth, h / bgImg.naturalHeight)
+    const dx = (w - bgImg.naturalWidth * scale) / 2
+    const dy = (h - bgImg.naturalHeight * scale) / 2
+    ctx.drawImage(bgImg, dx, dy, bgImg.naturalWidth * scale, bgImg.naturalHeight * scale)
+    ctx.restore()
+  }
 
   // sombras
   ctx.save()
@@ -97,6 +112,8 @@ function draw(
   }
   ctx.restore()
 
+  ctx.save()
+  ctx.filter = `brightness(${FISH_BRIGHTNESS})`
   for (const f of fishes) {
     const def = spriteDefForBody(f.sprite)
     if (!def) continue
@@ -120,6 +137,7 @@ function draw(
     drawFish(ctx, body, tail, f, def, bodyW, bodyH, tailW, tailH)
     ctx.restore()
   }
+  ctx.restore()
 }
 
 function drawFish(
