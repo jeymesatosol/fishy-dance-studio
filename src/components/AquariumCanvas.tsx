@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import bgAsset from '@/assets/aquarium-bg.jpg.asset.json'
 import type { Asset, FishConfig } from '@/lib/aquarium/types'
 import { assetsToFishes } from '@/lib/aquarium/fish-mapping'
 import { defaultBoidsConfig, updateBoids } from '@/lib/aquarium/boids'
@@ -12,9 +13,17 @@ export function AquariumCanvas({ assets }: AquariumCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fishesRef = useRef<FishConfig[]>([])
   const rafRef = useRef<number | null>(null)
+  const bgImgRef = useRef<HTMLImageElement | null>(null)
   const [size, setSize] = useState({ w: 0, h: 0 })
 
   useEffect(() => { preloadFishImages() }, [])
+
+  useEffect(() => {
+    const img = new Image()
+    img.src = bgAsset.url
+    img.onload = () => { bgImgRef.current = img }
+    return () => { img.onload = null }
+  }, [])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -54,7 +63,7 @@ export function AquariumCanvas({ assets }: AquariumCanvasProps) {
         size.w,
         size.h
       )
-      draw(ctx, fishesRef.current, size.w, size.h)
+      draw(ctx, fishesRef.current, size.w, size.h, bgImgRef.current)
       rafRef.current = requestAnimationFrame(tick)
     }
     rafRef.current = requestAnimationFrame(tick)
@@ -64,20 +73,34 @@ export function AquariumCanvas({ assets }: AquariumCanvasProps) {
   }, [size.w, size.h])
 
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-2xl bg-gradient-to-b from-[#0b3a5b] via-[#0d4f73] to-[#0a2a44]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.18),transparent_60%)]" />
+    <div className="relative h-full w-full overflow-hidden rounded-2xl bg-black">
       <canvas ref={canvasRef} className="absolute inset-0" />
     </div>
   )
 }
 
+const BG_BRIGHTNESS = 0.85
+const FISH_BRIGHTNESS = 1.25
+
 function draw(
   ctx: CanvasRenderingContext2D,
   fishes: FishConfig[],
   w: number,
-  h: number
+  h: number,
+  bgImg: HTMLImageElement | null,
 ) {
   ctx.clearRect(0, 0, w, h)
+
+  // fundo
+  if (bgImg && bgImg.complete && bgImg.naturalWidth > 0) {
+    ctx.save()
+    ctx.filter = `brightness(${BG_BRIGHTNESS})`
+    const scale = Math.max(w / bgImg.naturalWidth, h / bgImg.naturalHeight)
+    const dx = (w - bgImg.naturalWidth * scale) / 2
+    const dy = (h - bgImg.naturalHeight * scale) / 2
+    ctx.drawImage(bgImg, dx, dy, bgImg.naturalWidth * scale, bgImg.naturalHeight * scale)
+    ctx.restore()
+  }
 
   // sombras
   ctx.save()
@@ -89,6 +112,8 @@ function draw(
   }
   ctx.restore()
 
+  ctx.save()
+  ctx.filter = `brightness(${FISH_BRIGHTNESS})`
   for (const f of fishes) {
     const def = spriteDefForBody(f.sprite)
     if (!def) continue
@@ -112,6 +137,7 @@ function draw(
     drawFish(ctx, body, tail, f, def, bodyW, bodyH, tailW, tailH)
     ctx.restore()
   }
+  ctx.restore()
 }
 
 function drawFish(
