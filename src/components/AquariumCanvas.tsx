@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import bgAsset from '@/assets/scenery/caribe.png'
+import bgAsset from '@/assets/scenery/pihipihi.png'
 import type { FishConfig, Project, SceneryOptions } from '@/lib/aquarium/types'
 import { defaultScenery } from '@/lib/aquarium/types'
 import { projectsToFishes } from '@/lib/aquarium/fish-mapping'
