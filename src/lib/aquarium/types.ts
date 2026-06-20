@@ -1,47 +1,100 @@
-// Tipos para o portfólio de investimentos
-export type AssetType = 'stock' | 'crypto' | 'etf' | 'bond' | 'reit'
+// Tipos do domínio AquaDash — projetos representados como peixes
 
-export interface Asset {
+export type ProjectStatus =
+  | 'planejado'
+  | 'em_andamento'
+  | 'revisao'
+  | 'concluido'
+  | 'bloqueado'
+  | 'em_risco'
+
+export type ProjectCategory = 'web' | 'mobile' | 'backend' | 'dados'
+
+export type Priority = 'baixa' | 'media' | 'alta' | 'critica'
+
+export type Engagement = 'ruim' | 'bom' | 'excelente'
+
+export interface Project {
   id: string
-  symbol: string
   name: string
-  type: AssetType
-  quantity: number
-  avgPrice: number
-  currentPrice: number
-  change24h: number
-  change30d: number
-  volatility: number // 0-1
-  volume: number
+  category: ProjectCategory
+  status: ProjectStatus
+  progress: number // 0-100
+  priority: Priority
+  satisfaction: number // 0-100
+  engagement: Engagement
+  team: string
+  deadline: string // ISO yyyy-mm-dd
 }
 
-export interface Portfolio {
-  totalValue: number
-  change24h: number
-  change30d: number
-  assets: Asset[]
+export const statusColors: Record<ProjectStatus, string> = {
+  planejado: '#64748b',
+  em_andamento: '#3b82f6',
+  revisao: '#a855f7',
+  concluido: '#22c55e',
+  bloqueado: '#ef4444',
+  em_risco: '#f59e0b',
+}
+
+export const statusLabels: Record<ProjectStatus, string> = {
+  planejado: 'Planejado',
+  em_andamento: 'Em andamento',
+  revisao: 'Em revisão',
+  concluido: 'Concluído',
+  bloqueado: 'Bloqueado',
+  em_risco: 'Em risco',
+}
+
+export const categoryLabels: Record<ProjectCategory, string> = {
+  web: 'Web',
+  mobile: 'Mobile',
+  backend: 'Backend',
+  dados: 'Dados',
+}
+
+export const priorityLabels: Record<Priority, string> = {
+  baixa: 'Baixa',
+  media: 'Média',
+  alta: 'Alta',
+  critica: 'Crítica',
+}
+
+export interface SceneryOptions {
+  reef: boolean
+  algae: boolean
+  bubbles: boolean
+  anchor: boolean
+  shipwreck: boolean
+}
+
+export const defaultScenery: SceneryOptions = {
+  reef: true,
+  algae: true,
+  bubbles: true,
+  anchor: false,
+  shipwreck: false,
 }
 
 export interface FishConfig {
   id: string
-  assetId: string
+  projectId: string
   x: number
   y: number
   vx: number
   vy: number
   size: number
   color: string
-  sprite: string         // URL da imagem do peixe
-  facing: 'left' | 'right' // direção em que o sprite original aponta
-  speed: number          // velocidade de cruzeiro alvo (px/frame)
+  sprite: string
+  facing: 'left' | 'right'
+  speed: number
   cruisingSpeed: number
-  direction: number      // ângulo atual (rad)
+  direction: number
   preferredDepth: number
   targetX: number
   targetY: number
   nextTargetChange: number
-  wanderAngle: number    // ruído de wander acumulado
-  phase: number          // para oscilação suave
+  wanderAngle: number
+  phase: number
 }
 
 export interface BoidsConfig {
@@ -50,16 +103,8 @@ export interface BoidsConfig {
   cohesionWeight: number
   maxSpeed: number
   minSpeed: number
-  maxForce: number       // aceleração máx por frame
-  maxTurnRate: number    // radianos por frame
+  maxForce: number
+  maxTurnRate: number
   perceptionRadius: number
   separationRadius: number
-}
-
-export const assetTypeColors: Record<AssetType, string> = {
-  stock: '#3B82F6',
-  crypto: '#F97316',
-  etf: '#10B981',
-  bond: '#8B5CF6',
-  reit: '#EC4899',
 }
