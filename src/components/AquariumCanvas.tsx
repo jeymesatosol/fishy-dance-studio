@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import bgAsset from '@/assets/aquarium-bg.jpg.asset.json'
+import bgAsset from '@/assets/scenery/caribe.png'
 import type { FishConfig, Project, SceneryOptions } from '@/lib/aquarium/types'
 import { defaultScenery } from '@/lib/aquarium/types'
 import { projectsToFishes } from '@/lib/aquarium/fish-mapping'
@@ -27,7 +27,7 @@ export function AquariumCanvas({ projects, scenery = defaultScenery, compact = f
 
   useEffect(() => {
     const img = new Image()
-    img.src = bgAsset.url
+    img.src = bgAsset
     img.onload = () => { bgImgRef.current = img }
     return () => { img.onload = null }
   }, [])
@@ -37,11 +37,17 @@ export function AquariumCanvas({ projects, scenery = defaultScenery, compact = f
     if (!canvas) return
     const parent = canvas.parentElement
     if (!parent) return
-    const ro = new ResizeObserver(() => {
+
+    const updateSize = () => {
       const rect = parent.getBoundingClientRect()
       setSize({ w: rect.width, h: rect.height })
+    }
+
+    const ro = new ResizeObserver(() => {
+      updateSize()
     })
     ro.observe(parent)
+    updateSize()
     return () => ro.disconnect()
   }, [])
 

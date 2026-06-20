@@ -1,12 +1,15 @@
 import type { ProjectCategory } from './types'
-import clownfishBody from '@/assets/fish/clownfish-body.png.asset.json'
-import clownfishTail from '@/assets/fish/clownfish-tail.png.asset.json'
-import angelfishBody from '@/assets/fish/angelfish-body.png.asset.json'
-import angelfishTail from '@/assets/fish/angelfish-tail.png.asset.json'
-import koiBody from '@/assets/fish/koi-body.png.asset.json'
-import koiTail from '@/assets/fish/koi-tail.png.asset.json'
-import bluetangBody from '@/assets/fish/bluetang-body.png.asset.json'
-import bluetangTail from '@/assets/fish/bluetang-tail.png.asset.json'
+import clownfishBody from '@/assets/fish/palhaco/corpo.png'
+import clownfishTail from '@/assets/fish/palhaco/cauda.png'
+
+import bluetangBody from '@/assets/fish/azul/corpo.png'
+import bluetangTail from '@/assets/fish/azul/cauda.png'
+
+import koiBody from '@/assets/fish/carpa/corpo.png'
+import koiTail from '@/assets/fish/carpa/cauda.png'
+
+import angelfishBody from '@/assets/fish/dourado/corpo.png'
+import angelfishTail from '@/assets/fish/dourado/cauda.png'
 
 export interface SpriteDef {
   bodyUrl: string
@@ -20,10 +23,10 @@ export interface SpriteDef {
 }
 
 export const fishSprites: Record<ProjectCategory, SpriteDef> = {
-  mobile:  { bodyUrl: clownfishBody.url, tailUrl: clownfishTail.url, facing: 'left', tailScale: 0.462, attachX: 0.95, attachY: 0.55, pivotX: 0.08, pivotY: 0.5 },
-  backend: { bodyUrl: bluetangBody.url,  tailUrl: bluetangTail.url,  facing: 'left', tailScale: 0.418, attachX: 0.94, attachY: 0.5,  pivotX: 0.1,  pivotY: 0.5 },
-  web:     { bodyUrl: angelfishBody.url, tailUrl: angelfishTail.url, facing: 'left', tailScale: 0.528, attachX: 0.88, attachY: 0.6,  pivotX: 0.1,  pivotY: 0.5 },
-  dados:   { bodyUrl: koiBody.url,       tailUrl: koiTail.url,       facing: 'left', tailScale: 0.418, attachX: 0.94, attachY: 0.5,  pivotX: 0.15, pivotY: 0.5 },
+  mobile:  { bodyUrl: clownfishBody, tailUrl: clownfishTail, facing: 'left', tailScale: 0.462, attachX: 0.95, attachY: 0.55, pivotX: 0.08, pivotY: 0.5 },
+  backend: { bodyUrl: bluetangBody,  tailUrl: bluetangTail,  facing: 'left', tailScale: 0.35, attachX: 0.94, attachY: 0.5,  pivotX: 0.1,  pivotY: 0.5 },
+  web:     { bodyUrl: angelfishBody, tailUrl: angelfishTail, facing: 'left', tailScale: 0.38, attachX: 0.84, attachY: 0.58,  pivotX: 0.1,  pivotY: 0.5 },
+  dados:   { bodyUrl: koiBody,       tailUrl: koiTail,       facing: 'left', tailScale: 0.6, attachX: 0.97, attachY: 0.449,  pivotX: 0.15, pivotY: 0.5 },
 }
 
 const cache = new Map<string, HTMLImageElement>()
