@@ -1,21 +1,28 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import bgAsset from '@/assets/aquarium-bg.jpg.asset.json'
-import type { Asset, FishConfig } from '@/lib/aquarium/types'
-import { assetsToFishes } from '@/lib/aquarium/fish-mapping'
+import type { FishConfig, Project, SceneryOptions } from '@/lib/aquarium/types'
+import { defaultScenery } from '@/lib/aquarium/types'
+import { projectsToFishes } from '@/lib/aquarium/fish-mapping'
 import { defaultBoidsConfig, updateBoids } from '@/lib/aquarium/boids'
 import { getFishImage, preloadFishImages, spriteDefForBody, type SpriteDef } from '@/lib/aquarium/fish-sprites'
+import { drawScenery } from '@/lib/aquarium/scenery'
 
 interface AquariumCanvasProps {
-  assets: Asset[]
+  projects: Project[]
+  scenery?: SceneryOptions
+  /** Reduz overhead: usado no mini-aquário do dashboard. */
+  compact?: boolean
 }
 
-export function AquariumCanvas({ assets }: AquariumCanvasProps) {
+export function AquariumCanvas({ projects, scenery = defaultScenery, compact = false }: AquariumCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fishesRef = useRef<FishConfig[]>([])
   const rafRef = useRef<number | null>(null)
   const bgImgRef = useRef<HTMLImageElement | null>(null)
+  const sceneryRef = useRef<SceneryOptions>(scenery)
   const [size, setSize] = useState({ w: 0, h: 0 })
 
+  useEffect(() => { sceneryRef.current = scenery }, [scenery])
   useEffect(() => { preloadFishImages() }, [])
 
   useEffect(() => {
@@ -38,10 +45,15 @@ export function AquariumCanvas({ assets }: AquariumCanvasProps) {
     return () => ro.disconnect()
   }, [])
 
+  const projectsKey = useMemo(
+    () => projects.map((p) => `${p.id}:${p.status}:${p.progress}:${p.priority}:${p.engagement}:${p.category}`).join('|'),
+    [projects],
+  )
+
   useEffect(() => {
     if (size.w === 0 || size.h === 0) return
-    fishesRef.current = assetsToFishes(assets, size.w, size.h)
-  }, [assets, size.w, size.h])
+    fishesRef.current = projectsToFishes(projects, size.w, size.h)
+  }, [projectsKey, size.w, size.h]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -57,30 +69,23 @@ export function AquariumCanvas({ assets }: AquariumCanvasProps) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
     const tick = () => {
-      fishesRef.current = updateBoids(
-        fishesRef.current,
-        defaultBoidsConfig,
-        size.w,
-        size.h
-      )
-      draw(ctx, fishesRef.current, size.w, size.h, bgImgRef.current)
+      fishesRef.current = updateBoids(fishesRef.current, defaultBoidsConfig, size.w, size.h)
+      draw(ctx, fishesRef.current, size.w, size.h, bgImgRef.current, sceneryRef.current, compact)
       rafRef.current = requestAnimationFrame(tick)
     }
     rafRef.current = requestAnimationFrame(tick)
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current)
-    }
-  }, [size.w, size.h])
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
+  }, [size.w, size.h, compact])
 
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-2xl bg-black">
+    <div className="relative h-full w-full overflow-hidden rounded-2xl bg-black ring-1 ring-white/5">
       <canvas ref={canvasRef} className="absolute inset-0" />
     </div>
   )
 }
 
 const BG_BRIGHTNESS = 0.85
-const FISH_BRIGHTNESS = 1.25
+const FISH_BRIGHTNESS = 1.05
 
 function draw(
   ctx: CanvasRenderingContext2D,
@@ -88,10 +93,11 @@ function draw(
   w: number,
   h: number,
   bgImg: HTMLImageElement | null,
+  scenery: SceneryOptions,
+  compact: boolean,
 ) {
   ctx.clearRect(0, 0, w, h)
 
-  // fundo
   if (bgImg && bgImg.complete && bgImg.naturalWidth > 0) {
     ctx.save()
     ctx.filter = `brightness(${BG_BRIGHTNESS})`
@@ -100,17 +106,25 @@ function draw(
     const dy = (h - bgImg.naturalHeight * scale) / 2
     ctx.drawImage(bgImg, dx, dy, bgImg.naturalWidth * scale, bgImg.naturalHeight * scale)
     ctx.restore()
+  } else {
+    ctx.fillStyle = '#03131f'
+    ctx.fillRect(0, 0, w, h)
   }
 
-  // sombras
-  ctx.save()
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.18)'
-  for (const f of fishes) {
-    ctx.beginPath()
-    ctx.ellipse(f.x + 4, f.y + f.size * 0.55, f.size * 0.6, f.size * 0.12, 0, 0, Math.PI * 2)
-    ctx.fill()
+  const t = performance.now()
+  drawScenery(ctx, w, h, scenery, t)
+
+  // sombras suaves
+  if (!compact) {
+    ctx.save()
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.18)'
+    for (const f of fishes) {
+      ctx.beginPath()
+      ctx.ellipse(f.x + 4, f.y + f.size * 0.55, f.size * 0.6, f.size * 0.12, 0, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    ctx.restore()
   }
-  ctx.restore()
 
   ctx.save()
   ctx.filter = `brightness(${FISH_BRIGHTNESS})`
@@ -123,12 +137,9 @@ function draw(
     if (!tail.complete || tail.naturalWidth === 0) continue
 
     const bodyH = f.size * 1.3
-    const bodyAspect = body.naturalWidth / body.naturalHeight
-    const bodyW = bodyH * bodyAspect
-
+    const bodyW = bodyH * (body.naturalWidth / body.naturalHeight)
     const tailH = bodyH * def.tailScale
-    const tailAspect = tail.naturalWidth / tail.naturalHeight
-    const tailW = tailH * tailAspect
+    const tailW = tailH * (tail.naturalWidth / tail.naturalHeight)
 
     ctx.save()
     ctx.translate(f.x, f.y)
@@ -161,41 +172,25 @@ function drawFish(
   const flipX = goingLeft !== spriteFacesLeft ? -1 : 1
   if (flipX === -1) ctx.scale(-1, 1)
 
-  // Em coords de código, mantemos sempre a orientação NATIVA do sprite.
-  // Para spriteFacesLeft, cabeça na esquerda, cauda na direita.
-  // attachX é medido a partir do lado da cabeça → em coords locais:
-  //   - facing left:  attach = -bodyW/2 + attachX * bodyW
-  //   - facing right: attach =  bodyW/2 - attachX * bodyW
   const attachLocalX = spriteFacesLeft
     ? -bodyW / 2 + def.attachX * bodyW
     : bodyW / 2 - def.attachX * bodyW
   const attachLocalY = -bodyH / 2 + def.attachY * bodyH
 
-  // pivotX na imagem da cauda, medido do lado do corpo
-  // - facing left: lado do corpo da cauda = esquerda da img da cauda
-  //   → pivô em coords da img: pivotX * tailW (a partir da esquerda)
-  // - facing right: lado do corpo = direita da img → pivô a partir da direita
   const tailPivotInImgX = spriteFacesLeft ? def.pivotX * tailW : tailW - def.pivotX * tailW
   const tailPivotInImgY = def.pivotY * tailH
 
-  // Batida da cauda — movimento lateral discreto ao longo do eixo do corpo
-  // (em vez de rotação vertical, a cauda desliza/escala horizontalmente
-  // simulando uma vista superior do nado).
   const speed = Math.hypot(f.vx ?? 0, f.vy ?? 0)
   const beat = 1.4 + Math.min(speed * 0.4, 1.6)
-  const swing = Math.sin(f.phase * beat) // -1..1
-  // compressão horizontal sutil (lateral squash) — sempre <= 1
+  const swing = Math.sin(f.phase * beat)
   const tailSquash = 1 - Math.abs(swing) * 0.25
-  // deslocamento lateral discreto ao longo do eixo do corpo (coords locais do código)
   const lateralShift = swing * tailW * 0.08 * (spriteFacesLeft ? 1 : -1)
 
-  // --- Cauda articulada (desenhada ANTES do corpo p/ esconder a junção) ---
   ctx.save()
   ctx.translate(attachLocalX + lateralShift, attachLocalY)
   ctx.scale(tailSquash, 1)
   ctx.drawImage(tailImg, -tailPivotInImgX, -tailPivotInImgY, tailW, tailH)
   ctx.restore()
 
-  // --- Corpo (por cima, ocultando a articulação) ---
   ctx.drawImage(bodyImg, -bodyW / 2, -bodyH / 2, bodyW, bodyH)
 }
